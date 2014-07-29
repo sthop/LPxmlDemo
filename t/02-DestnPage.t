@@ -33,8 +33,8 @@ sub testNewDestinationPage {
 sub testPageGenerate {
    my ($page) = @_;
    
-   my $destnStack = decodeData();
-   $page->generate($destnStack);
+   my $destn = decodeData();
+   $page->generate($destn);
    print '';
 }
 
@@ -55,7 +55,8 @@ __DATA__;
    "node_name" : "South Africa",
    "navigation" : [
       {
-         "href" : "355064.html"
+         "href" : "355064.html",
+         "name" : "Africa"
       }
    ],
    "children" : [

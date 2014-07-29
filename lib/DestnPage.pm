@@ -66,9 +66,14 @@ sub generate {
    my $tmplCfg = $self->_tmplCfgs;
    my $destTmpl = Template->new($tmplCfg);
 
-   $destTmpl->process('destinations.html',$pageData,
+   my @procParams = ('destinations.html',$pageData,
       Path::Class::File->new($self->path,$pageData->{atlas_node_id}.'.html')->stringify
-   ) || $self->exception($destTmpl->error);
+   );
+   push(@procParams, {binmode => ':encoding('.$self->destinations->encoding.')'})
+      if ($self->destinations->encoding);
+
+   $destTmpl->process(@procParams) || $self->exception($destTmpl->error);
+   delete($pageData->{content}); #Clean up content as it's not longer needed
 }
 
 ################################################################################
@@ -82,9 +87,10 @@ sub _buildContent {
    $self->echo('Add Navigation for child destination nodes');
    $self->_setNavigation($pageData);
    my $doc = $self->destinations->getDestination($pageData->{atlas_node_id});
+   $pageData->{content} = {};
+   return if (!defined($doc));
    $self->echo('Adding Title information to content');
    $self->_setTitles($pageData,$doc);
-   $pageData->{content} = {};
    foreach my $node (@{$doc->getDocumentElement->getChildNodes}) {
       next if ($node->getNodeType != $node->ELEMENT_NODE);
       if ($node->getTagName eq 'history') {
@@ -139,11 +145,7 @@ sub _setIntroduction {
       my $text = $self->_getElementText($overview);
       if ($text) {
          my @textLines = split(/\n/,$text);
-         
-         @{$introduction{overview}} =
-            map { (($_ =~ /\S/ && $self->_destEnc) ? 
-               encode($self->_destEnc, $_) : $_)
-            } @textLines;
+         $introduction{overview} = \@textLines;
       }
    }
 

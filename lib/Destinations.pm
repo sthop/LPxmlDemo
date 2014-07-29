@@ -34,19 +34,21 @@ has 'encoding' => (isa => 'Str',
 has '_fh' => (isa => 'IO::File',
    is => 'rw',
    default => sub {IO::File->new},
-   documentation => q/file handle to the xml file/
+   documentation => q/file handle to the Destinations xml file/
 );
 
 has '_indexes' => (isa => 'HashRef',
    is => 'rw',
    default => sub {{}},
-   documentation => q/Indexing of offsets to each destination record in the destination file, based on the atlas id./
+   documentation => q/Indexing of offsets to each destination record in the destinations file, based on the atlas id./
 );
    
 
 
 ################################################################################
-# Constructor:
+# Constructor: As part of instantiation, open the file handle to the
+# destinations xml file, and build an index to each record within the xml,
+# for fast access.
 ################################################################################
 sub BUILD {
    my $self = shift;
@@ -132,30 +134,38 @@ sub _posStartDestRec {
 
 ################################################################################
 # Private Method _buildIndex
-# Build an index into the Destinations record, so we can extract a record when
-# and as required.
+# Build an index into the Destinations record, so we can extract a record
+# without rereading the file from scratch, every time.
 ################################################################################
 sub _buildIndex {
    my $self = shift;
    my $fh = $self->_fh;
 
+   $self->echo('Building the index into ['.$self->file->basename.']');
    my $rec = 0;
    while (!$fh->eof) {
       #Get file offset position of the start of each destination record
       my $pos = $self->_posStartDestRec();
       next if (!defined $pos);
       $rec++;
-      #change the input record separator, so we can read in the entire record in one hit
+      #change the input record separator, so we can read in the entire record in one block
       $INPUT_RECORD_SEPARATOR = "</destination>";
       my $line = $fh->getline;
-      $INPUT_RECORD_SEPARATOR = "\n"; #Change input record separator back to it's default
+      #Change input record separator back to it's default
+      $INPUT_RECORD_SEPARATOR = "\n";
       my ($atlas_id) = $line =~ /<destination.+?atlas_id="(\d+)"/;
       $self->exception('destination record No ['.$rec.'] - element appears to be missing attribute "atlas_id"','error')
          if (!$atlas_id);
       $self->exception('['.$atlas_id.'] is not unique at Record ['.$rec.']')
          if (exists($self->_indexes->{$atlas_id}));
       my ($title) = $line =~ /title="(.+?)"/;
+      $self->exception('destination record No ['.$rec.'] - element appears to be missing attribute "title"','error')
+         if (!$title);
       my ($title_ascii) = $line =~ /title-ascii="(.+?)"/;
+      $self->exception('destination record No ['.$rec.'] - element appears to be missing attribute "title_ascii"','error')
+         if (!$title_ascii);
+      
+
       $self->_indexes->{$atlas_id} =
          {title => $title, title_ascii => $title_ascii, offset => $pos};
    } #while

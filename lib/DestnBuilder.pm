@@ -57,16 +57,20 @@ sub end_element {
    
    if ($data->{LocalName} eq 'node' || $data->{LocalName} eq 'taxonomy') {
       my $cur = $self->_stack->[$#{$self->_stack}];
+      if ($data->{LocalName} eq 'taxonomy') {
+         $cur->{title} = $cur->{node_name} = $cur->{taxonomy_name};
+         $cur->{atlas_node_id} = 'index';
+      }
       $self->_ancestorNav($cur); #gather up the navigation details for ancestor destinations
+      $self->destnPage->generate($cur);
       if ($#{$self->_stack} > 0) {
          $cur = $self->_stack->[$#{$self->_stack} - 1];
          push(@{$cur->{children}},$self->_stack->[$#{$self->_stack}]);
          pop(@{$self->_stack});
       } else {
-         $self->_trav({});
+         $self->_stack({});
       }
    }
-   print '';
 }
 
 ################################################################################
@@ -114,7 +118,7 @@ sub _ancestorNav {
       my $navPoint = (exists($stack->[$pos]{taxonomy_name})) ?
          {href => 'index.html', name => 'World'} :
          {href => $stack->[$pos]{atlas_node_id}.'.html',
-         name => ($enc ? encode($enc,$titles->{title}) : $titles->{title})};
+         name => $titles->{title}};
       push(@{$cur->{navigation}}, $navPoint);
    }
 }
