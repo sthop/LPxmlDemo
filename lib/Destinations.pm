@@ -28,7 +28,7 @@ has 'file' => (isa => 'fileType',
 has 'encoding' => (isa => 'Str',
    is => 'rw',
    default => '',
-   documentation => q/encoding format of xml file (generally utf8)/
+   documentation => q/Encoding format of xml file (generally utf8). Automatically set when the xml is read./
 );
 
 has '_fh' => (isa => 'IO::File',
@@ -40,15 +40,15 @@ has '_fh' => (isa => 'IO::File',
 has '_indexes' => (isa => 'HashRef',
    is => 'rw',
    default => sub {{}},
-   documentation => q/Indexing of offsets to each destination record in the destinations file, based on the atlas id./
+   documentation => q/Indexing of offsets (based on atlas_id) to each destination record in the destinations file, based on the atlas id./
 );
    
 
 
 ################################################################################
-# Constructor: As part of instantiation, open the file handle to the
-# destinations xml file, and build an index to each record within the xml,
-# for fast access.
+# Constructor:
+# As part of instantiation, open the file handle to the destinations xml file,
+# and build an index to each record within the xml, for fast access.
 ################################################################################
 sub BUILD {
    my $self = shift;
@@ -62,13 +62,16 @@ sub BUILD {
 
 ################################################################################
 # Public Methods getDestination
-#
+# Extract the destination record for the atlas_id given, and return an XML DOM
+# object of that record.
 ################################################################################
 sub getDestination {
    my $self = shift;
    my ($atlas_id) = @_;
 
    my $fh = $self->_fh;
+
+   $self->echo('Extracting and parsing Destination record for ['.$atlas_id.']','debug');
 
    #The Atlas ID passed in, isn't indexed
    return(undef) if (!exists($self->_indexes->{$atlas_id}));
@@ -92,8 +95,8 @@ sub getDestination {
 }
 
 ################################################################################
-# Public Methods getDestination
-#
+# Public Methods destinationTitles
+# Return the title details stored in the index, for a particular atlas_id
 ################################################################################
 sub destinationTitles {
    my $self = shift;
@@ -120,10 +123,16 @@ sub _posStartDestRec {
       my $line = $fh->getline;
       if (my ($enc) = $line =~ /<\?xml.+encoding="(.+?)"/) {
          #While finding start position of Record, found xml encoding..., change to read encoding
+         #This should only happen while looking for the first destination record.
+         #change read mode to bin mode encoding i.e. decode utf8 etc
+         $self->echo('Switching to read the xml file using '.$enc.' encoding.');
          $fh->binmode(':encoding('.uc($enc).')');
          $self->encoding(uc($enc));
       }
-      if ($line =~ /<destination.+?atlas_id="\d+"/) {
+      
+      #found start of destination record, reset file position to start of line
+      #& return the position
+      if ($line =~ /<destination.+?atlas_id="\d+"/) { 
          $fh->seek($pos,0);
          return($pos);
       }
@@ -141,7 +150,7 @@ sub _buildIndex {
    my $self = shift;
    my $fh = $self->_fh;
 
-   $self->echo('Building the index into ['.$self->file->basename.']');
+   $self->echo('Building the index for ['.$self->file->basename.']');
    my $rec = 0;
    while (!$fh->eof) {
       #Get file offset position of the start of each destination record
@@ -153,6 +162,8 @@ sub _buildIndex {
       my $line = $fh->getline;
       #Change input record separator back to it's default
       $INPUT_RECORD_SEPARATOR = "\n";
+      
+      #extract attributes from the destination element
       my ($atlas_id) = $line =~ /<destination.+?atlas_id="(\d+)"/;
       $self->exception('destination record No ['.$rec.'] - element appears to be missing attribute "atlas_id"','error')
          if (!$atlas_id);
@@ -165,7 +176,7 @@ sub _buildIndex {
       $self->exception('destination record No ['.$rec.'] - element appears to be missing attribute "title_ascii"','error')
          if (!$title_ascii);
       
-
+      #Each index will store the attributes of each destination element, and the offset into the file
       $self->_indexes->{$atlas_id} =
          {title => $title, title_ascii => $title_ascii, offset => $pos};
    } #while
@@ -190,13 +201,43 @@ Destinations - Class for accessing and parsing records in the Destinations XML f
 
 =head1 DESCRIPTION
 
+Destinations works by opening the xml file, and creating an index into the file
+during instantiation. This avoids reading in the whole file (which could potentially
+be huge), and provides a fast method for accessing records as required.
+
+When a record is record, it will be read from the file and returned as an XML DOM
+object.
+
 =head1 ATTRIBUTES
 
 =head2 file
 
-  Data Type:   Path::Class::Dir
+  Data Type:   Path::Class::File
   Required:    Yes
 
 Full name of the destinations xml file. Will accept the name as a String.
+
+= head2 encoding
+
+  Data Type:  String
+  Required:   Yes (see description)
+
+Encoding format of xml file (generally utf8). Automatically set when the xml is read.
+
+=head1 METHODS
+
+=head2 getDestination
+
+Returns an XML DOM object of the destination record, for an atlas id.
+
+  $dest_rec = $destn->getDestination(atlas_id)
+
+= head2 destinationTitles
+
+Returns the title information for an atlas id, stored in the index.
+
+  $titledtls = $destn->destinationTitles(atlas_id)
+
+$titledtls is a reference to hash, containing 'title' and 'title_ascii'
 
 =cut

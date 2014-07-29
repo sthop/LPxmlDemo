@@ -32,7 +32,7 @@ has 'path' => (isa => 'pathType',
    is => 'rw',
    required => 1,
    coerce => 1,
-   documentation => q/Full path of where the generated Page is to be created/
+   documentation => q/Full path of where the generated html Page is to be created/
 );
 
 has 'templateConfig' => (isa => 'fileType',
@@ -46,13 +46,13 @@ has '_tmplCfgs' => (isa => 'HashRef',
    is => 'rw',
    lazy => 1,
    builder => '_setTmplCfgs',
-   documentation => q/Store configuration option for Template./
+   documentation => q/Reference to global configuration options for Template./
 );
-
 
 ################################################################################
 # Public Methods generate
-#
+# Given page data, build up the content and uses Template to generate a
+# destinations html page.
 ################################################################################
 sub generate {
    my $self = shift;
@@ -61,14 +61,17 @@ sub generate {
    $self->echo('Collecting Details for "'.
       $pageData->{node_name}.'" - atlas node id "'.$pageData->{atlas_node_id}.'"');
    
+   #Build the html content data, adding it to $pageData
    $self->_buildContent($pageData);
    
-   my $tmplCfg = $self->_tmplCfgs;
-   my $destTmpl = Template->new($tmplCfg);
+   my $destTmpl = Template->new($self->_tmplCfgs);
 
+   #Store parameters for Template->process, in an array
    my @procParams = ('destinations.html',$pageData,
       Path::Class::File->new($self->path,$pageData->{atlas_node_id}.'.html')->stringify
    );
+   
+   #If the destinations file was encoded, use the same encoding for template output
    push(@procParams, {binmode => ':encoding('.$self->destinations->encoding.')'})
       if ($self->destinations->encoding);
 
@@ -78,18 +81,25 @@ sub generate {
 
 ################################################################################
 # Private Method _buildContent
-#
+# Main controlling method for building the detsinations page's content data.
 ################################################################################
 sub _buildContent {
    my $self = shift;
    my ($pageData) = @_;
    
    $self->echo('Add Navigation for child destination nodes');
+
+   #Set the navigation details for accessing child destination nodes (pages)
+   #Any ancestor destination nodes should already be contained within $pageData
    $self->_setNavigation($pageData);
+   
+   #get the destination document
    my $doc = $self->destinations->getDestination($pageData->{atlas_node_id});
    $pageData->{content} = {};
    return if (!defined($doc));
    $self->echo('Adding Title information to content');
+   
+   #Add document data to the page contents
    $self->_setTitles($pageData,$doc);
    foreach my $node (@{$doc->getDocumentElement->getChildNodes}) {
       next if ($node->getNodeType != $node->ELEMENT_NODE);
@@ -105,8 +115,8 @@ sub _buildContent {
 }
 
 ################################################################################
-# Private Method _setHistory
-#
+# Private Method _getElementText
+# Generic module for extracting and returning the text for an element.
 ################################################################################
 sub _getElementText {
    my $self = shift;
@@ -126,7 +136,7 @@ sub _getElementText {
 
 ################################################################################
 # Private Method _setIntroduction
-#
+# Extract the introduction from the Document and add it to the page content data
 ################################################################################
 sub _setIntroduction {
    my $self = shift;
@@ -159,17 +169,7 @@ sub _setIntroduction {
 
 ################################################################################
 # Private Method _setHistory
-#
-################################################################################
-sub _destEnc {
-   my $self = shift;
-
-   return($self->destinations->encoding);
-}
-
-################################################################################
-# Private Method _setHistory
-#
+# Extract the history from the Document and add it to the page content data
 ################################################################################
 sub _setHistory {
    my $self = shift;
@@ -206,7 +206,7 @@ sub _setHistory {
 
 ################################################################################
 # Private Method _setTitles
-#
+# Extract the title information and add to the content data (title may contain utf8 characters)
 ################################################################################
 sub _setTitles {
    my $self = shift;
@@ -218,14 +218,18 @@ sub _setTitles {
 }
 
 ################################################################################
-# Private Method _childNavigation
-#
+# Private Method _setNavigation
+# Set the page navigation for child destination nodes. Assumes that if
+# $pageData already contains the 'children' key, these will be for navigating to
+# ancestor destination nodes.
 ################################################################################
 sub _setNavigation {
    my $self = shift;
    my ($pageData) = @_;
    
    return if (!exists($pageData->{children}));
+   #As the navigation details are built, child nodes are no longer required and
+   #can be removed from the list of children.
    while (my $child = shift(@{$pageData->{children}})) {
       push(@{$pageData->{navigation}},
          {href => $child->{atlas_node_id}.'.html', name => $child->{node_name}}
@@ -234,8 +238,9 @@ sub _setNavigation {
 }
 
 ################################################################################
-# Private Method _buildContent
-#
+# Private Method _setTmplCfgs
+# Read in global template configurations from a YAML file, and return it as a
+# hash reference. Used to initialise _tmplCfgs
 ################################################################################
 sub _setTmplCfgs {
    my $self = shift;
@@ -250,8 +255,8 @@ sub _setTmplCfgs {
 }
 
 ################################################################################
-# Private Method _getAncestors
-#
+# Private Method _trim
+# simple method to trim text. (perl doesn't have a trim function for strings)
 ################################################################################
 sub _trim {
    my $text = shift;
@@ -267,3 +272,77 @@ no Moose;
 ################################################################################
 1;
 __END__
+
+=head1 NAME
+
+DestnPage - Generates a html page for Destination record.
+
+=head1 SYNOPSIS
+
+  use DestnPage;
+  my $pg = DestnPage->new(destinations => $destObj,
+     path => '/path/to/location/of/html/files',
+     templateConfig => '/template/configs/yaml/file'
+  );
+
+=head1 DESCRIPTION
+
+Builds up content data from a destinations record and generates a destination
+html page.
+
+=head1 ATTRIBUTES
+
+=head2 destinations
+
+  Data Type:   Destinations object
+  Required:    Yes
+
+Destinations object
+
+=head2 path
+
+  Data Type:   Path::Class::Dir
+  Required:    Yes
+
+Full path of where the generated html Page is to be created.
+
+=head2 templateConfig
+
+  Data Type:   Path::Class::File
+  Required:    Yes
+
+Configuration File (YAML) containing the template configurations
+
+=head1 METHODS
+
+=head2 generate
+
+Takes a Hash reference, containing initial information, and builds up
+content data for a destination, then generates the html page for that
+destination.
+
+  $pg->generate($pageData)
+
+It's expected that $pageData will contain the following keys:
+
+=over 4
+
+=item *
+
+atlas_node_id: The atlas id used for retrieving the destination record, and basing the html file names on
+
+=item *
+
+node_name: The destination name
+
+=item *
+
+navigation: contains any navigation (ancestor node/s if any) details (href, name)
+
+=item *
+
+children: Reference to child nodes (if any) containing similar information as $pageData itself.
+
+=back
+
+=cut

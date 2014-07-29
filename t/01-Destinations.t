@@ -17,6 +17,7 @@ BEGIN {
     testGetDestRec($dest);
 }
 
+#Test creating a new Destinations object
 sub testNewDestinations {
    die_on_fail;
    my $dest = new_ok('Destinations' => [file => Path::Class::File->new($FindBin::Bin,'Data','destinations.xml')], 'Test new Destinations object');
@@ -26,6 +27,7 @@ sub testNewDestinations {
    return($dest);
 }
 
+#Test method of the Destination class
 sub testGetDestRec {
    my ($dest) = @_;
    

@@ -2,6 +2,7 @@
 
 use English;
 use warnings;
+use File::Spec;
 use FindBin;
 use JSON;
 use Path::Class;
@@ -18,12 +19,13 @@ BEGIN {
     testPageGenerate($page);
 }
 
+#Test new DestnPage object
 sub testNewDestinationPage {
    die_on_fail;
-   my $page = new_ok('DestnPage' => [destinations => Destinations->new(file => Path::Class::File->new($FindBin::Bin,'Data','destinations.xml')),
-      path => Path::Class::Dir->new($FindBin::Bin,'..','destinations')->resolve,
+   my $page = new_ok('DestnPage' => [destinations => Destinations->new(file => Path::Class::File->new($FindBin::Bin,'Data','destntest.xml')),
+      path => Path::Class::Dir->new($FindBin::Bin,'Data'),
       templateConfig => Path::Class::File->new($FindBin::Bin,'..','cfg','Template.cfg')->resolve],
-      'New Destination Page object');
+      'New DestnPage object');
    
    can_ok($page, qw/destinations path templateConfig generate/);
    restore_fail;
@@ -33,9 +35,14 @@ sub testNewDestinationPage {
 sub testPageGenerate {
    my ($page) = @_;
    
+   #clean up any html pages in the Data, as testing is to the html file is generated
+   unlink(glob(File::Spec->catfile($FindBin::Bin,'Data','*.html')));
+   
+   #test html page generation
    my $destn = decodeData();
-   $page->generate($destn);
-   print '';
+   lives_ok { $page->generate($destn) } 'Generating html page';
+   
+   ok(-e Path::Class::File->new($FindBin::Bin,'Data','355611.html'), 'html page generated');
 }
 
 sub decodeData {

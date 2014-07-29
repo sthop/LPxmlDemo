@@ -10,6 +10,8 @@ use lib (Path::Class::Dir->new($FindBin::Bin,'..','lib')->resolve->stringify);
 use NotifiableTestObj;
 
 BEGIN {
+   #This is a dummy object that uses Role::Notifiable, specifically for unit
+   #testing the methods within.
    use_ok('NotifiableTestObj');
 }
 
@@ -29,7 +31,7 @@ sub testNewNotifiableTestObj {
 sub testWoutLogging {
    my ($obj) = @_;
    
-   #test echo
+   #test echo by capturing stdout and redirecting to a string
    SKIP: {
       my $ORIG_STDOUT = *STDOUT;
       open(my $strFH, '>', \(my $stdout));
