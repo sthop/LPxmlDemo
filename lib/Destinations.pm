@@ -9,6 +9,7 @@ use English;
 use warnings;
 use IO::File;
 use Moose;
+use Try::Tiny;
 use XML::DOM;
 
 with 'Role::PathClassable';
@@ -42,8 +43,6 @@ has '_indexes' => (isa => 'HashRef',
    default => sub {{}},
    documentation => q/Indexing of offsets (based on atlas_id) to each destination record in the destinations file, based on the atlas id./
 );
-   
-
 
 ################################################################################
 # Constructor:
@@ -55,7 +54,6 @@ sub BUILD {
 
    $self->_fh->open($self->file,'<') ||
       $self->exception('Failed to open the Destinations file');
-   $self->echo('Generating Destination Record index into ['.$self->file->basename.']');
    $self->_buildIndex();
 
 } #BUILD
@@ -82,16 +80,24 @@ sub getDestination {
       $fh->open($self->file,'<') ||
          $self->exception('Failed to reopen the Destinations file');
    }
-   
+   #store default record separator...
+   my $default_sep = $INPUT_RECORD_SEPARATOR;
    #Reposition to the exact location of the XML record, with that Atlas ID...
    $fh->seek($self->_indexes->{$atlas_id}{offset},0);
-   #...and read the record in one go
+   #...and read the record in one go by changing the input record separator
    $INPUT_RECORD_SEPARATOR = "</destination>";
    my $recStr = $fh->getline;
-   $INPUT_RECORD_SEPARATOR = "\n";
+   #Change input record separator back to it's default
+   $INPUT_RECORD_SEPARATOR = $default_sep;
    
-   my $parser = XML::DOM::Parser->new();
-   return($parser->parse($recStr));
+   my $domRec;
+   try {
+      my $parser = XML::DOM::Parser->new();
+      $domRec = $parser->parse($recStr);
+   } catch {
+      $self->exception('Invalid XML Record parsed ['.$atlas_id.']: '.$_);
+   };
+   return($domRec);
 }
 
 ################################################################################
@@ -110,36 +116,61 @@ sub destinationTitles {
 }
 
 ################################################################################
-# Private Method _posStartDestRec
-# Returns the file offset position of the start of each destination record.
+# Private Method _checkXMLDecl
+# Ensure that the file is an XML file, and has an XML declaration. If encoding
+# is given in the declaration, switch to use that encoding.
 ################################################################################
-sub _posStartDestRec {
+sub _checkXMLDecl {
    my $self = shift;
    my $fh = $self->_fh;
-   my $pos = $fh->tell;
 
-   #find start location of the next destination record
    while (!$fh->eof) {
       my $line = $fh->getline;
-      if (my ($enc) = $line =~ /<\?xml.+encoding="(.+?)"/) {
-         #While finding start position of Record, found xml encoding..., change to read encoding
-         #This should only happen while looking for the first destination record.
-         #change read mode to bin mode encoding i.e. decode utf8 etc
-         $self->echo('Switching to read the xml file using '.$enc.' encoding.');
-         $fh->binmode(':encoding('.uc($enc).')');
-         $self->encoding(uc($enc));
-      }
+      next if ($line =~ /^\s*$/); #not interested in blank lines
       
-      #found start of destination record, reset file position to start of line
-      #& return the position
-      if ($line =~ /<destination.+?atlas_id="\d+"/) { 
-         $fh->seek($pos,0);
-         return($pos);
+      #first non-blank line is expected to be an xml declaration
+      if ($line =~ /<\?xml.*?>/) {
+         my ($enc) = $line =~ /encoding="(.+?)"/;
+         if ($enc) {
+            #Found xml encoding..., change to read encoding
+            #change read mode to bin mode encoding i.e. decode utf8 etc
+            $self->echo('Switching to read the xml file using '.$enc.' encoding.');
+            $fh->binmode(':encoding('.uc($enc).')');
+            $self->encoding(uc($enc));
+         }
+         last;
+      } else {
+         $self->exception('Missing XML declaration in ['.$self->file->basename.']');
       }
-      $pos = $fh->tell;
-   } #while
-   return(undef); #undef mean we've reached eof
-} #_posStartDestRec
+   }
+}
+
+################################################################################
+# Private Method _setIndexDtls
+# Called by _buildIndex to extract the attributes from the destination element
+# and store it in the index.
+################################################################################
+sub _setIndexDtls {
+   my $self = shift;
+   my ($line) = @_;
+   
+   #extract attributes from the destination element
+   my ($atlas_id) = $line =~ /\satlas_id="(\d+)"/;
+   chomp($line);
+   $self->exception('destination record "'.$line.'" element appears to be missing attribute "atlas_id"','error')
+      if (!$atlas_id);
+   $self->exception('['.$atlas_id.'] is not unique in ['.$self->file->basename.']')
+      if (exists($self->_indexes->{$atlas_id}));
+   my ($title) = $line =~ /\stitle="(.+?)"/;
+   $self->exception('Element node for destination record with atlas id ['.$atlas_id.'] appears to be missing attribute "title"','error')
+       if (!$title);
+   my ($title_ascii) = $line =~ /\stitle-ascii="(.+?)"/;
+   $self->exception('Element node for destination record with atlas id ['.$atlas_id.'] appears to be missing attribute "title-ascii"','error')
+      if (!$title_ascii);
+   #Each index will store the attributes of each destination element, and the offset into the file
+   $self->_indexes->{$atlas_id} = {title => $title, title_ascii => $title_ascii};
+   return($self->_indexes->{$atlas_id});
+}
 
 ################################################################################
 # Private Method _buildIndex
@@ -151,35 +182,26 @@ sub _buildIndex {
    my $fh = $self->_fh;
 
    $self->echo('Building the index for ['.$self->file->basename.']');
-   my $rec = 0;
+   $self->_checkXMLDecl();
+   my $pos = $fh->tell;
+   my $inRecord = 0; #toggle when we reach start & ending destination element tags.
    while (!$fh->eof) {
-      #Get file offset position of the start of each destination record
-      my $pos = $self->_posStartDestRec();
-      next if (!defined $pos);
-      $rec++;
-      #change the input record separator, so we can read in the entire record in one block
-      $INPUT_RECORD_SEPARATOR = "</destination>";
       my $line = $fh->getline;
-      #Change input record separator back to it's default
-      $INPUT_RECORD_SEPARATOR = "\n";
-      
-      #extract attributes from the destination element
-      my ($atlas_id) = $line =~ /<destination.+?atlas_id="(\d+)"/;
-      $self->exception('destination record No ['.$rec.'] - element appears to be missing attribute "atlas_id"','error')
-         if (!$atlas_id);
-      $self->exception('['.$atlas_id.'] is not unique at Record ['.$rec.']')
-         if (exists($self->_indexes->{$atlas_id}));
-      my ($title) = $line =~ /title="(.+?)"/;
-      $self->exception('destination record No ['.$rec.'] - element appears to be missing attribute "title"','error')
-         if (!$title);
-      my ($title_ascii) = $line =~ /title-ascii="(.+?)"/;
-      $self->exception('destination record No ['.$rec.'] - element appears to be missing attribute "title_ascii"','error')
-         if (!$title_ascii);
-      
-      #Each index will store the attributes of each destination element, and the offset into the file
-      $self->_indexes->{$atlas_id} =
-         {title => $title, title_ascii => $title_ascii, offset => $pos};
+      if ($line =~ /<destination\s.*?>/) {
+         $self->exception('Unmatched destination start element tag in ['.$self->file->basename.']')
+            if ($inRecord);
+         $inRecord = 1;
+         #Create and add the offset to the index
+         $self->_setIndexDtls($line)->{offset} = $pos;
+      } elsif ($line =~ /<\/destination>/) {
+         $self->exception('Unmatched destination closing element tag in ['.$self->file->basename.']')
+            if (!$inRecord);
+         $inRecord = 0;
+      }
+      $pos = $fh->tell;
    } #while
+   $self->exception('No destination records found in ['.$self->file->basename.']')
+      if (!keys(%{$self->_indexes}));
 } #_buildIndex
 
 
