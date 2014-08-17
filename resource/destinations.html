@@ -21,7 +21,7 @@
               <div class="inner">
                 <ul class="navigation">
                   [% FOREACH link IN navigation %]
-                    <li><a href="[% link.href %]">[% link.name %]</a></li>
+                    <li><a href="[% link.href %]">[% link.label %]</a></li>
                   [% END %]
                 </ul>
               </div>
@@ -43,6 +43,23 @@
                   [% intro = content.introduction %]
                   [% IF intro.exists('overview') %]
                     [% FOREACH para IN intro.overview %]
+                      [% IF (para.match('\S')) %]
+                        <p>[% para %]</p>
+                      [% END %]
+                    [% END %]
+                  [% END %]
+                [% END %]
+                [% IF content.exists('history') %]
+                  [% history = content.history %]
+                  [% IF history.exists('detail') %]
+                    [% FOREACH para IN history.detail %]
+                      [% IF (para.match('\S')) %]
+                        <p>[% para %]</p>
+                      [% END %]
+                    [% END %]
+                  [% END %]
+                  [% IF history.exists('overview') %]
+                    [% FOREACH para IN history.overview %]
                       [% IF (para.match('\S')) %]
                         <p>[% para %]</p>
                       [% END %]
