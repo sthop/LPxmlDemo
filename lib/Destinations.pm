@@ -26,6 +26,7 @@ has 'file' => (isa => 'fileType',
    is => 'rw',
    required => 1,
    coerce => 1,
+   builder => '_setFileFromArgs',
    documentation => q/Full name of the destinations xml file/
 );
 
@@ -208,6 +209,18 @@ private_method _buildIndex => sub {
    $self->exception('No destination records found in ['.$self->file->basename.']')
       if (!keys(%{$self->_indexes}));
 }; #_buildIndex
+
+################################################################################
+# Private Method _setPathFromArgs
+# Will automatically set the path from the Args object, if it wasn't passed
+# through in the construction.
+################################################################################
+sub _setFileFromArgs {
+   my $self = shift;
+
+   return(Args->instance()->destinations)
+      if (Args->initialised);
+}
 
 
 __PACKAGE__->meta->make_immutable;
