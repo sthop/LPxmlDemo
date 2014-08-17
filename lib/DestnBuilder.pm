@@ -31,13 +31,13 @@ has 'destnPage' => (isa => 'DestnPage',
 has '_stack' => (isa => 'ArrayRef',
    is => 'rw',
    default => sub {[]},
-   documentation => q//
+   documentation => q/Internal stack representation, as the node tree structure is traversed/
 );
 
 has '_cur_elem' => (isa => 'Str',
    is => 'rw',
    default => '',
-   documentation => q//
+   documentation => q/Stores the current element name/
 );
 
 ################################################################################
@@ -51,20 +51,24 @@ sub BUILD {
 
 ################################################################################
 # Public Method
+# Called by the SAX parser when a start element is detected
 ################################################################################
 sub start_element {
    my $self = shift;
    my ($data) = @_;
    
    my $cur_elem = $self->_cur_elem($data->{LocalName});
+   #Only interested in 'node' and 'taxonomy' elements
    if ($cur_elem eq 'node' || $cur_elem eq 'taxonomy') {
       my $cur = _getAttribs($data);
+      #push the details onto the stack as we find each new node
       push(@{$self->_stack},$cur);
    }
 }
 
 ################################################################################
 # Public Method
+# Called by the SAX parser when an end element is detected
 ################################################################################
 sub end_element {
    my $self = shift;
@@ -80,6 +84,7 @@ sub end_element {
          $cur->{atlas_node_id} = 'index';
       }
       if ($self->destnContent->build($cur->{atlas_node_id},$content)) {
+         #Sort and add the current node's (built up) navigation details to the page content
          @{$content->{navigation}} = sort {$a->{label} cmp $b->{label}} @{$cur->{navigation}}
             if (exists($cur->{navigation}));
          
@@ -91,18 +96,20 @@ sub end_element {
          $self->warning('No content for node id ['.$cur->{atlas_node_id}.'] found. html page generation skipped...');
       }
       if ($#{$self->_stack} > 0) {
-         my $parent = $self->_stack->[$#{$self->_stack} - 1];
+         my $parent = $self->_stack->[$#{$self->_stack} - 1]; #get the parent node
+         #Build up the navigation details in the parent node
          push(@{$parent->{navigation}},
             {href => $content->{node_id}.'.html', label => $content->{title}});
-         pop(@{$self->_stack});
+         pop(@{$self->_stack}); #done with this node, pop it off the stack
       } else {
-         $self->_stack([]);
+         $self->_stack([]); #Clean up the top level node (taxonomy element)
       }
    }
 }
 
 ################################################################################
 # Public Method
+# Called by the SAX parser when character data is found
 ################################################################################
 sub characters {
    my $self = shift;
@@ -116,7 +123,8 @@ sub characters {
 }
 
 ################################################################################
-# Private Method 
+# Private Method
+# Returns a simple hash structure of the element's attributes
 ################################################################################
 sub _getAttribs {
    my ($data) = @_;
@@ -129,7 +137,8 @@ sub _getAttribs {
 }
 
 ################################################################################
-# Private Method 
+# Private Method
+# Returns a list of navigation details for the current node's ancestors
 ################################################################################
 sub _ancestorNav {
    my $self = shift;
