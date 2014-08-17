@@ -16,10 +16,16 @@ extends 'XML::SAX::Base';
 # Attributes:
 ################################################################################
 
+has 'destnContent' => (isa => 'DestnContent',
+   is => 'rw',
+   required => 1,
+   documentation => q/Destination Content for building up the data content for the destination page/
+);
+
 has 'destnPage' => (isa => 'DestnPage',
    is => 'rw',
    required => 1,
-   documentation => q/DestinationPage Object for generating a html destination page/
+   documentation => q/DestnPage Object for generating a html destination page/
 );
 
 has '_stack' => (isa => 'ArrayRef',
@@ -33,6 +39,15 @@ has '_cur_elem' => (isa => 'Str',
    default => '',
    documentation => q//
 );
+
+################################################################################
+# Constructor:
+################################################################################
+sub BUILD {
+   my $self = shift;
+
+   $self->destnPage->encoding($self->destnContent->destinations->encoding);
+}
 
 ################################################################################
 # Public Method
@@ -57,18 +72,31 @@ sub end_element {
    
    if ($data->{LocalName} eq 'node' || $data->{LocalName} eq 'taxonomy') {
       my $cur = $self->_stack->[$#{$self->_stack}];
+      my $content = {};
+      
+      #Handle special case Taxonomy element. This is the "World" level
       if ($data->{LocalName} eq 'taxonomy') {
-         $cur->{title} = $cur->{node_name} = $cur->{taxonomy_name};
+         $content->{title} = $cur->{taxonomy_name};
          $cur->{atlas_node_id} = 'index';
       }
-      $self->_ancestorNav($cur); #gather up the navigation details for ancestor destinations
-      $self->destnPage->generate($cur);
+      if ($self->destnContent->build($cur->{atlas_node_id},$content)) {
+         @{$content->{navigation}} = sort {$a->{label} cmp $b->{label}} @{$cur->{navigation}}
+            if (exists($cur->{navigation}));
+         
+         #gather up the navigation details for ancestor destinations and prepend them to the
+         #current navigation list.
+         unshift(@{$content->{navigation}},$self->_ancestorNav());
+         $self->destnPage->generate($content);
+      } else {
+         $self->warning('No content for node id ['.$cur->{atlas_node_id}.'] found. html page generation skipped...');
+      }
       if ($#{$self->_stack} > 0) {
-         $cur = $self->_stack->[$#{$self->_stack} - 1];
-         push(@{$cur->{children}},$self->_stack->[$#{$self->_stack}]);
+         my $parent = $self->_stack->[$#{$self->_stack} - 1];
+         push(@{$parent->{navigation}},
+            {href => $content->{node_id}.'.html', label => $content->{title}});
          pop(@{$self->_stack});
       } else {
-         $self->_stack({});
+         $self->_stack([]);
       }
    }
 }
@@ -105,22 +133,22 @@ sub _getAttribs {
 ################################################################################
 sub _ancestorNav {
    my $self = shift;
-   my ($cur) = @_;
    
    my $stack = $self->_stack; #for convenience
    return if (!$#{$stack}); #top level destination node won't have any navigation to a parent
-   my $destns = $self->destnPage->destinations;
-   my $enc = $destns->encoding;
+   my $destns = $self->destnContent->destinations;
+   my @ancestorNavs;
    for my $pos (0..$#{$stack} - 1) {
       my $titles;
       $titles = $destns->destinationTitles($stack->[$pos]{atlas_node_id})
          if (exists($stack->[$pos]{atlas_node_id}));
       my $navPoint = (exists($stack->[$pos]{taxonomy_name})) ?
-         {href => 'index.html', name => 'World'} :
+         {href => 'index.html', label => 'World'} :
          {href => $stack->[$pos]{atlas_node_id}.'.html',
-         name => $titles->{title}};
-      push(@{$cur->{navigation}}, $navPoint);
+         label => $titles->{title}};
+      push(@ancestorNavs, $navPoint);
    }
+   return(@ancestorNavs);
 }
 
 __PACKAGE__->meta->make_immutable;

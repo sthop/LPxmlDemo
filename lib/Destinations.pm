@@ -9,8 +9,11 @@ use English;
 use warnings;
 use IO::File;
 use Moose;
+use MooseX::Privacy;
 use Try::Tiny;
 use XML::DOM;
+
+our $VERSION = '0.10';
 
 with 'Role::PathClassable';
 with 'Role::Notifiable';
@@ -34,14 +37,16 @@ has 'encoding' => (isa => 'Str',
 
 has '_fh' => (isa => 'IO::File',
    is => 'rw',
+   traits => ['Private'],
    default => sub {IO::File->new},
    documentation => q/file handle to the Destinations xml file/
 );
 
 has '_indexes' => (isa => 'HashRef',
    is => 'rw',
+   traits => ['Private'],
    default => sub {{}},
-   documentation => q/Indexing of offsets (based on atlas_id) to each destination record in the destinations file, based on the atlas id./
+   documentation => q/Indexing of offsets to each destination record in the destinations file, based on the atlas id./
 );
 
 ################################################################################
@@ -59,7 +64,7 @@ sub BUILD {
 } #BUILD
 
 ################################################################################
-# Public Methods getDestination
+# Public Method getDestination
 # Extract the destination record for the atlas_id given, and return an XML DOM
 # object of that record.
 ################################################################################
@@ -101,7 +106,7 @@ sub getDestination {
 }
 
 ################################################################################
-# Public Methods destinationTitles
+# Public Method destinationTitles
 # Return the title details stored in the index, for a particular atlas_id
 ################################################################################
 sub destinationTitles {
@@ -120,7 +125,7 @@ sub destinationTitles {
 # Ensure that the file is an XML file, and has an XML declaration. If encoding
 # is given in the declaration, switch to use that encoding.
 ################################################################################
-sub _checkXMLDecl {
+private_method _checkXMLDecl => sub {
    my $self = shift;
    my $fh = $self->_fh;
 
@@ -143,14 +148,14 @@ sub _checkXMLDecl {
          $self->exception('Missing XML declaration in ['.$self->file->basename.']');
       }
    }
-}
+};
 
 ################################################################################
 # Private Method _setIndexDtls
 # Called by _buildIndex to extract the attributes from the destination element
 # and store it in the index.
 ################################################################################
-sub _setIndexDtls {
+private_method _setIndexDtls => sub {
    my $self = shift;
    my ($line) = @_;
    
@@ -170,14 +175,14 @@ sub _setIndexDtls {
    #Each index will store the attributes of each destination element, and the offset into the file
    $self->_indexes->{$atlas_id} = {title => $title, title_ascii => $title_ascii};
    return($self->_indexes->{$atlas_id});
-}
+};
 
 ################################################################################
 # Private Method _buildIndex
 # Build an index into the Destinations record, so we can extract a record
 # without rereading the file from scratch, every time.
 ################################################################################
-sub _buildIndex {
+private_method _buildIndex => sub {
    my $self = shift;
    my $fh = $self->_fh;
 
@@ -202,7 +207,7 @@ sub _buildIndex {
    } #while
    $self->exception('No destination records found in ['.$self->file->basename.']')
       if (!keys(%{$self->_indexes}));
-} #_buildIndex
+}; #_buildIndex
 
 
 __PACKAGE__->meta->make_immutable;
@@ -227,7 +232,7 @@ Destinations works by opening the xml file, and creating an index into the file
 during instantiation. This avoids reading in the whole file (which could potentially
 be huge), and provides a fast method for accessing records as required.
 
-When a record is record, it will be read from the file and returned as an XML DOM
+When a record is required, it will be read from the file and returned as an XML DOM
 object.
 
 =head1 ATTRIBUTES
@@ -244,7 +249,7 @@ Full name of the destinations xml file. Will accept the name as a String.
   Data Type:  String
   Required:   Yes (see description)
 
-Encoding format of xml file (generally utf8). Automatically set when the xml is read.
+Encoding format of xml file (generally utf8). Automatically set when the xml file is read.
 
 =head1 METHODS
 
