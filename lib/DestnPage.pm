@@ -120,12 +120,16 @@ DestnPage - Class for Generating a destination html page (basically a view).
 =head1 SYNOPSIS
 
   use DestnPage;
-
+  
   my $page = DestnPage->new(path => '/path/destinations',
      templateConfig => 'template.cfg');
-
-  or
-
+  
+  or if Args.pm is used
+  
+  use DestnPage;
+  use Args;
+  
+  Args->initialize();
   my $page = DestnPage->new(templateConfig => 'template.cfg');
 
 =head1 DESCRIPTION

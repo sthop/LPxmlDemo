@@ -16,6 +16,7 @@ use Destinations;
 use utf8;
 
 with 'Test::Class::Moose::Role::AutoUse';
+with 'Role::Argv';
 
 ################################################################################
 # Attributes:
@@ -34,6 +35,7 @@ has 'dataDir' => (isa => 'Path::Class::Dir',
 
 has '_testCases' => (isa => 'HashRef',
    is => 'rw',
+   traits => ['Protected'],
    builder => '_setTestCases',
    documentation => q/Hash of arrays containing sets of test case data./
 );
@@ -54,6 +56,21 @@ sub test_startup {
 
 ################################################################################
 # Public Method
+# Authomatically called before each test method
+################################################################################
+sub test_setup {
+   my $test = shift;
+   
+   $test->next::method;
+   if ($test->test_report->current_method->name =~ /construct_with_default_destinations/) {
+      $test->alterArgv('-t' => 'dummy_taxonomy', '-p' => 'dummy_path',
+      '-d' => Path::Class::File->new($test->dataDir,'destntest.xml')->stringify);
+      Args->initialize;
+   }
+}
+
+################################################################################
+# Public Method
 ################################################################################
 sub test_00_constructor {
    my $test = shift;
@@ -62,6 +79,18 @@ sub test_00_constructor {
    does_ok($content,'Role::Notifiable', 'does Role Notifiable');
    has_attribute_ok($content,'destinations', 'Has a "destinations" attribute');
    has_method_ok($content,'build');
+}
+
+################################################################################
+# Public Method
+################################################################################
+sub test_construct_with_default_destinations {
+   my $test = shift;
+   
+   my $dest;
+   lives_ok {$dest = $test->class_name->new() } 'Instantiate object with default for destinations';
+   is($dest->destinations->file,Args->instance->destinations,
+      'destinations attribute defaulted with correct argument for destinations file');
 }
 
 ################################################################################
@@ -98,7 +127,21 @@ sub test_build_content_with_invalid_node_id {
 }
 
 ################################################################################
-# Private Method _setTestCases
+# Public Method
+# Automatically called after every Test method.
+################################################################################
+sub test_teardown {
+   my $test = shift;
+
+   $test->next::method;
+   if ($test->test_report->current_method->name =~ /construct_with_default_destinations/) {
+      $test->restoreArgv();
+      Args->clear;
+   }
+}
+
+################################################################################
+# Private Method
 # Reads the JSON text in the __DATA__ section below and sets the _testCases
 # attribute.
 ################################################################################
@@ -138,7 +181,7 @@ __DATA__
    },
    "355064" : {
       "node_id" : "355064",
-      "title" : "Africaö",
+      "title" : "Africaö조",
       "title_ascii" : "Africa",
       "navigation" : [],
       "content" : {

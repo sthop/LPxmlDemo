@@ -7,10 +7,8 @@ package DestnContent;
 
 use English;
 use warnings;
-#use Encode qw/encode/;
-#use IO::File;
 use Moose;
-#use Path::Class;
+use Destinations;
 
 with 'Role::Notifiable';
 
@@ -21,11 +19,12 @@ with 'Role::Notifiable';
 has 'destinations' => (isa => 'Destinations',
    is => 'rw',
    required => 1,
+   builder => '_set_destinations',
    documentation => q/Destinations object/
 );
 
 ################################################################################
-# Public Methods generate
+# Public Method
 # Build up the content for displaying on a destination html page, adding it to
 # the $pageData Hash.
 ################################################################################
@@ -66,7 +65,7 @@ sub build {
 }
 
 ################################################################################
-# Private Method _setIntroduction
+# Private Method
 # Extract the introduction from the Document and add it to the page content data
 # $content - The content hash initialised at the start of "build"
 # $IntroNode - The <introductory> element node
@@ -104,7 +103,7 @@ sub _setIntroduction {
 }
 
 ################################################################################
-# Private Method _setHistory
+# Private Method
 # Extract the history from the Document and add it to the page content data
 # $content - The content hash initialised at the start of "build"
 # $IntroNode - The top level <history> element node
@@ -149,7 +148,7 @@ sub _setHistory {
 }
 
 ################################################################################
-# Private Method _setTitles
+# Private Method
 # Extract the title attributes from the destination element and add it to the
 # page content data (title may contain utf8 characters)
 ################################################################################
@@ -163,7 +162,7 @@ sub _setTitles {
 }
 
 ################################################################################
-# Private Method _getElementText
+# Private Method
 # Generic module for extracting and returning the text of an element.
 ################################################################################
 sub _getElementText {
@@ -183,7 +182,7 @@ sub _getElementText {
 }
 
 ################################################################################
-# Private Method _trim
+# Private Method
 # simple method to trim text. (perl doesn't have a trim function for strings)
 ################################################################################
 sub _trim {
@@ -193,6 +192,18 @@ sub _trim {
    $text =~ s/\s*$//;
    $text;
 }
+
+################################################################################
+# Private Method
+# Automatically set the destinations object, if it wasn't passed through in the
+# constructor.
+################################################################################
+sub _set_destinations {
+   my $self = shift;
+   
+   return(Destinations->new());
+}
+
 
 __PACKAGE__->meta->make_immutable;
 no Moose;
@@ -207,16 +218,24 @@ DestnContent - Build the content for a Destination html page.
 
 =head1 SYNOPSIS
 
-  use DestnPage;
+  use DestnContent;
   use Destinations;
-
+  
   my $destObj = Destinations->new(file => 'destinations.xml');
-  my $pg = DestnPage->new(destinations => $destObj);
+  my $pgData = DestnContent->new(destinations => $destObj);
+  
+  or if Args.pm is used
+  
+  use DestnContent;
+  use Args;
+  
+  Args->initialize();
+  my $pgData = DestnContent->new();
 
 =head1 DESCRIPTION
 
 Builds up content by adding any content it finds, into a hash structure, which
-can then be used by the Template module.
+can then be used to generate the output.
 
 =head1 ATTRIBUTES
 
@@ -229,12 +248,12 @@ Destinations object
 
 =head1 METHODS
 
-=head2 generate
+=head2 build
 
 Takes a Hash reference, and builds up content data for a destination, adding to the
 hash as it goes.
 
-  $pg->generate($pageData)
+  $pgData->build($pageData)
 
 It's expected that $pageData will contain the following keys:
 
@@ -250,11 +269,11 @@ title: The destination name
 
 =item *
 
-navigation: Initialised as an array
+navigation: Initialised as an array for the navigation links
 
 =item *
 
-content: A has containing The main content or details of the destination
+content: A hash containing The main content or details of the destination
 
 =back
 

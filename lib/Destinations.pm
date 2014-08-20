@@ -65,7 +65,7 @@ sub BUILD {
 } #BUILD
 
 ################################################################################
-# Public Method getDestination
+# Public Method
 # Extract the destination record for the atlas_id given, and return an XML DOM
 # object of that record.
 ################################################################################
@@ -107,7 +107,7 @@ sub getDestination {
 }
 
 ################################################################################
-# Public Method destinationTitles
+# Public Method
 # Return the title details stored in the index, for a particular atlas_id
 ################################################################################
 sub destinationTitles {
@@ -122,7 +122,7 @@ sub destinationTitles {
 }
 
 ################################################################################
-# Private Method _checkXMLDecl
+# Private Method
 # Ensure that the file is an XML file, and has an XML declaration. If encoding
 # is given in the declaration, switch to use that encoding.
 ################################################################################
@@ -152,7 +152,7 @@ private_method _checkXMLDecl => sub {
 };
 
 ################################################################################
-# Private Method _setIndexDtls
+# Private Method
 # Called by _buildIndex to extract the attributes from the destination element
 # and store it in the index.
 ################################################################################
@@ -179,7 +179,7 @@ private_method _setIndexDtls => sub {
 };
 
 ################################################################################
-# Private Method _buildIndex
+# Private Method
 # Build an index into the Destinations record, so we can extract a record
 # without rereading the file from scratch, every time.
 ################################################################################
@@ -211,7 +211,7 @@ private_method _buildIndex => sub {
 }; #_buildIndex
 
 ################################################################################
-# Private Method _setPathFromArgs
+# Private Method
 # Will automatically set the path from the Args object, if it wasn't passed
 # through in the construction.
 ################################################################################
@@ -238,6 +238,14 @@ Destinations - Class for accessing and parsing records in the Destinations XML f
 
   use Destinations;
   my $destn = Destinations->new(file => 'destinations file');
+    
+  or if Args.pm is used
+  
+  use Destinations;
+  use Args;
+  
+  Args->initialize();
+  my $destn = Destinations->new();
 
 =head1 DESCRIPTION
 

@@ -10,6 +10,7 @@ use warnings;
 use Encode qw/encode/;
 use Moose;
 use MooseX::NonMoose;
+use DestnContent;
 extends 'XML::SAX::Base';
 
 ################################################################################
@@ -19,6 +20,7 @@ extends 'XML::SAX::Base';
 has 'destnContent' => (isa => 'DestnContent',
    is => 'rw',
    required => 1,
+   builder => '_set_destnContent',
    documentation => q/Destination Content for building up the data content for the destination page/
 );
 
@@ -57,6 +59,7 @@ sub start_element {
    my $self = shift;
    my ($data) = @_;
    
+   #Track the current element name (used mainly when charcter/text data is found)
    my $cur_elem = $self->_cur_elem($data->{LocalName});
    #Only interested in 'node' and 'taxonomy' elements
    if ($cur_elem eq 'node' || $cur_elem eq 'taxonomy') {
@@ -109,7 +112,7 @@ sub end_element {
 
 ################################################################################
 # Public Method
-# Called by the SAX parser when character data is found
+# Called by the SAX parser when element character/text data is found
 ################################################################################
 sub characters {
    my $self = shift;
@@ -117,8 +120,9 @@ sub characters {
   
   return if ($data->{Data} =~ /^\s*$/ || !$self->_cur_elem);
   my $cur = $self->_stack->[$#{$self->_stack}];
-  my $elem = $self->_cur_elem;
-  $cur->{$elem} = '' if (!exists($cur->{$elem}));
+  my $elem = $self->_cur_elem; #Name of the current element
+  #Add to the current node
+  #$cur->{$elem} = '' if (!exists($cur->{$elem}));
   $cur->{$elem} .= $data->{Data};
 }
 
@@ -152,7 +156,7 @@ sub _ancestorNav {
       $titles = $destns->destinationTitles($stack->[$pos]{atlas_node_id})
          if (exists($stack->[$pos]{atlas_node_id}));
       my $navPoint = (exists($stack->[$pos]{taxonomy_name})) ?
-         {href => 'index.html', label => 'World'} :
+         {href => 'index.html', label => $stack->[$pos]{taxonomy_name}} :
          {href => $stack->[$pos]{atlas_node_id}.'.html',
          label => $titles->{title}};
       push(@ancestorNavs, $navPoint);
@@ -160,9 +164,82 @@ sub _ancestorNav {
    return(@ancestorNavs);
 }
 
+################################################################################
+# Private Method
+# Automatically set the destnContent object, if it wasn't passed through in the
+# constructor.
+################################################################################
+sub _set_destnContent {
+   my $self = shift;
+   
+   return(DestnContent->new());
+}
+
+
 __PACKAGE__->meta->make_immutable;
 no Moose;
 
 ################################################################################
 1;
 __END__
+
+=head1 NAME
+
+DestnBuilder - The main controller module for generating Destination HTML pages.
+
+=head1 SYNOPSIS
+
+  use XML::SAX::ParserFactory;
+  use Destinations;
+  use DestnBuilder;
+  use DestnContent;
+  use DestnPage;
+  
+  my $dest = Destinations->new(...);
+  my $content = DestnContent->new(destinations => $dest);
+  my $page = DestnPage->new(...);
+  
+  my $builder = DestnBuilder->new(destnContent => $content, destnPage => $page);
+  my $parsr = XML::SAX::ParserFactory->parser(Handler => $builder);
+  my $parsr->parse_uri('taxonomy.xml');
+  
+  or if Args.pm is used
+  
+  use XML::SAX::ParserFactory;
+  use DestnBuilder;
+  use DestnPage;
+  use Args;
+  
+  Args->initialize();
+  my $page = DestnPage->new(...);
+  my $builder = DestnBuilder->new(destnPage => $page);
+  my $parsr = XML::SAX::ParserFactory->parser(Handler => $builder);
+  my $parsr->parse_uri('taxonomy.xml');
+
+=head1 DESCRIPTION
+
+The DestnBuilder class is essentially a handler for a SAX parser. The methods in
+this class are called by the parser, rather than called directly. To use it,
+instantiate a SAX parser, passing the builder as the handler, then call one of
+the parser methods.
+
+The DestnBuilder traverses the taxonomy tree, extracting content and creating each
+destination page as it goes along.
+
+=head1 ATTRIBUTES
+
+=head2 destnContent
+
+  Data Type:   DestnContent object
+  Required:    Yes
+
+Destination Content for building up the data content for the destination page
+
+=head2 destnPage
+
+  Data Type:   destnPage object
+  Required:    Yes
+
+DestnPage Object for generating a html destination page
+
+=cut
