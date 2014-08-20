@@ -31,12 +31,14 @@ has 'test_notifiable' => (isa => 'Object',
 
 has _logFile => (isa => 'Path::Class::File',
    is => 'rw',
+   traits => ['Protected'],
    default => sub {Path::Class::File->new($FindBin::Bin,'Data','notifiable_test.log')},
    documentation => q/The test log file. Must match the file defined in the logger config/
 );
 
 has _loggedMsgs => ( isa => 'Str',
    is => 'rw',
+   traits => ['Private'],
    default => '',
    documentation => q/Message to be logged so as to compare against what is actually logged/
 );
@@ -125,24 +127,8 @@ sub test_02_echo_without_logging {
 ################################################################################
 sub test_02_warn_without_logging {
    my $test = shift;
-   warning_like {$test->test_notifiable->warning('warning message')} qr/^WARNING! warning message\s*$/, 'warning thrown';
-   warning_like {$test->test_notifiable->warning('error warning message','error')} qr/^ERROR! error warning message\s*$/, 'error warning thrown';
-}
-
-################################################################################
-# Public Method
-################################################################################
-sub test_02_verbose_warn_without_logging {
-   my $test = shift;
-   warning_like {$test->test_notifiable->warning('warning message')} qr/^WARNING! warning message/, 'warning thrown (verbose mode)';
-}
-
-################################################################################
-# Public Method
-################################################################################
-sub test_02_verbose_err_warning_without_logging {
-   my $test = shift;
-   warning_like {$test->test_notifiable->warning('error level warning message','error')} qr/^ERROR! error level warning message/, 'error level warning thrown (verbose mode)';
+   warning_like {$test->test_notifiable->warning('warning message')} qr/^WARNING! warning message/, 'warning thrown';
+   warning_like {$test->test_notifiable->warning('error warning message','error')} qr/^ERROR! error warning message/, 'error warning thrown';
 }
 
 ################################################################################
@@ -150,24 +136,8 @@ sub test_02_verbose_err_warning_without_logging {
 ################################################################################
 sub test_02_exception_without_logging {
    my $test = shift;
-   throws_ok {$test->test_notifiable->exception('error message')} qr/^FATAL! error message\s*$/, 'exception thrown';
-   throws_ok {$test->test_notifiable->exception('error message','error')} qr/^ERROR! error message\s*$/, 'error level exception thrown';
-}
-
-################################################################################
-# Public Method
-################################################################################
-sub test_02_verbose_exception_without_logging {
-   my $test = shift;
-   throws_ok {$test->test_notifiable->exception('error message')} qr/^FATAL! error message.*(?:\n.+)+called at \//, 'fatal exception thrown (verbose mode)';
-}
-
-################################################################################
-# Public Method
-################################################################################
-sub test_02_verbose_error_exception_without_logging {
-   my $test = shift;
-   throws_ok {$test->test_notifiable->exception('error message','error')} qr/^ERROR! error message.*(?:\n.+)+called at \//, 'error level exception thrown (verbose mode)';
+   throws_ok {$test->test_notifiable->exception('error message')} qr/^FATAL! error message\s*\n/, 'exception thrown';
+   throws_ok {$test->test_notifiable->exception('error message','error')} qr/^ERROR! error message\s*\n/, 'error level exception thrown';
 }
 
 ################################################################################
@@ -211,10 +181,10 @@ sub test_03_warn_with_logging {
 
    my $testMsg = 'log warning message';
    warning_like {$test->test_notifiable->warning($testMsg)} qr/$testMsg/, 'warning message thrown';
-   $test->_loggedMsgs($test->_loggedMsgs.'WARN] WARNING! '.$testMsg."\n");
+   $test->_loggedMsgs($test->_loggedMsgs.'WARN] WARNING! '.$testMsg." at \n");
    $testMsg = 'log error level warning message';
    warning_like {$test->test_notifiable->warning($testMsg,'error')} qr/$testMsg/, 'error level warning message thrown';
-   $test->_loggedMsgs($test->_loggedMsgs.'ERROR] ERROR! '.$testMsg."\n");
+   $test->_loggedMsgs($test->_loggedMsgs.'ERROR] ERROR! '.$testMsg." at \n");
 }
 
 ################################################################################
@@ -225,38 +195,10 @@ sub test_03_exception_with_logging {
 
    my $testMsg = 'log exception message';
    throws_ok {$test->test_notifiable->exception($testMsg)} qr/$testMsg/, 'exception thrown';
-   $test->_loggedMsgs($test->_loggedMsgs.'FATAL] FATAL! '.$testMsg."\n");
+   $test->_loggedMsgs($test->_loggedMsgs.'FATAL] FATAL! '.$testMsg." at \n");
    $testMsg = 'log error level exception message';
    throws_ok {$test->test_notifiable->exception($testMsg,'error')} qr/$testMsg/, 'error level exception thrown';
-   $test->_loggedMsgs($test->_loggedMsgs.'ERROR] ERROR! '.$testMsg."\n");
-}
-
-################################################################################
-# Public Method
-################################################################################
-sub test_03_verbose_warn_with_logging {
-   my $test = shift;
-
-   my $testMsg = 'log verbose warning message';
-   warning_like {$test->test_notifiable->warning($testMsg)} qr/$testMsg/, 'verbose warning message thrown';
-   $test->_loggedMsgs($test->_loggedMsgs.'WARN] WARNING! '.$testMsg." at \n");
-   $testMsg = 'log verbose error level warning message';
-   warning_like {$test->test_notifiable->warning($testMsg,'error')} qr/$testMsg/, 'verbose error level warning message thrown';
-   $test->_loggedMsgs($test->_loggedMsgs.'WARN] ERROR! '.$testMsg." at \n");
-}
-
-################################################################################
-# Public Method
-################################################################################
-sub test_03_verbose_exception_with_logging {
-   my $test = shift;
-
-   my $testMsg = 'log verbose exception message';
-   throws_ok {$test->test_notifiable->exception($testMsg)} qr/$testMsg/, 'exception thrown';
-   $test->_loggedMsgs($test->_loggedMsgs.'FATAL] FATAL! '.$testMsg." at \n");
-   $testMsg = 'log verbose error level exception message';
-   throws_ok {$test->test_notifiable->exception($testMsg,'error')} qr/$testMsg/, 'error level exception thrown';
-   $test->_loggedMsgs($test->_loggedMsgs.'FATAL] ERROR! '.$testMsg." at \n");
+   $test->_loggedMsgs($test->_loggedMsgs.'ERROR] ERROR! '.$testMsg." at \n");
 }
 
 ################################################################################
@@ -327,9 +269,11 @@ private_method _capture_echo_message => sub {
 sub _stripUnwantedFileContent {
    my $line = shift;
    
+   #Ignore multiple lines related to a stack trace for warning and die log messages
+   return if ($line =~ /^(?:.+?\s\w+]\s)?\t/);
    #Log messages will start with date & time stamp. Don't need to validate this, so strip it off
-   return if ($line =~ /^.+?\s\w+]\s\t/);
    $line =~ s/^.+?\s(\w+])/$1/;
+   #First line containing a stack trace
    $line =~ s/( at )\/.+ line \d+\./$1/;
    return($line);
 }
