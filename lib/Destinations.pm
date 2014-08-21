@@ -165,7 +165,7 @@ private_method _setIndexDtls => sub {
    chomp($line);
    $self->exception('destination record "'.$line.'" element appears to be missing attribute "atlas_id"','error')
       if (!$atlas_id);
-   $self->exception('['.$atlas_id.'] is not unique in ['.$self->file->basename.']')
+   $self->exception('atlas id ['.$atlas_id.'] is not unique in ['.$self->file->basename.']')
       if (exists($self->_indexes->{$atlas_id}));
    my ($title) = $line =~ /\stitle="(.+?)"/;
    $self->exception('Element node for destination record with atlas id ['.$atlas_id.'] appears to be missing attribute "title"','error')
