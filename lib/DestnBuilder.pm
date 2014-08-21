@@ -86,7 +86,7 @@ sub end_element {
          $content->{title} = $cur->{taxonomy_name};
          $cur->{atlas_node_id} = 'index';
       }
-      if ($self->destnContent->build($cur->{atlas_node_id},$content)) {
+      if ($self->destnContent->build($cur->{atlas_node_id},$content) || $data->{LocalName} eq 'taxonomy') {
          #Sort and add the current node's (built up) navigation details to the page content
          @{$content->{navigation}} = sort {$a->{label} cmp $b->{label}} @{$cur->{navigation}}
             if (exists($cur->{navigation}));
