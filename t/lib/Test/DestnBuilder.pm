@@ -118,6 +118,10 @@ sub test_destination_page_generation {
    my $parsr = XML::SAX::ParserFactory->parser(Handler => $builder);
    lives_ok { $parsr->parse_uri(Path::Class::File->new($test->dataDir,'taxo_test.xml')->stringify) }
       'destination pages generated';
+   my $expectedHTMLs = $test->_expectedHTMLFiles();
+   foreach (@{$expectedHTMLs}) {
+      ok (-e Path::Class::File->new($test->_testPath,$_), $_.' file generated');
+   }
 }
 
 ################################################################################
@@ -151,7 +155,7 @@ sub test_teardown {
 }
 
 ################################################################################
-# Private Method _setTestCases
+# Private Method
 # Builder method for setting the private attribute _testPath
 ################################################################################
 sub _set_testPath {
@@ -160,8 +164,28 @@ sub _set_testPath {
    return(Path::Class::Dir->new($test->dataDir,'destinations'));
 }
 
+################################################################################
+# Private Method
+# Reads the JSON text in the __DATA__ section below and sets the _testCases
+# attribute.
+################################################################################
+sub _expectedHTMLFiles {
+   my $self;
+
+   my $json = JSON->new();
+   my @data = <DATA>;
+   close(DATA);
+   my $jsonStr = join('',@data);
+   my $data = $json->decode($jsonStr);
+   $data;
+}
+
 __PACKAGE__->meta->make_immutable;
 no Moose;
 
 ################################################################################
 1;
+__DATA__
+[
+   "index.html", "355064.html", "355611.html", "355612.html", "355614.html"
+]
