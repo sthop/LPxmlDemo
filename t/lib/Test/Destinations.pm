@@ -229,6 +229,11 @@ __DATA__
          "file" : "dest_no_records.xml",
          "regex" : "No destination records found in",
          "description" : "No destination records found throws exception"
+      },
+      {
+         "file" : "dest_duplicate_atlas_id.xml",
+         "regex" : "atlas id \\[\\d+\\] is not unique in",
+         "description" : "duplicate atlas id detected throws exception"
       }
    ],
    "getDestnRecTests" : [

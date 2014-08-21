@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<destinations>
+   <destination atlas_id="355064" asset_id="22614-4" title="Africaö조" title-ascii="Africa">
+      <history>
+      </history>
+      <introductory>
+      </introductory>
+   </destination>
+   <destination atlas_id="355611" asset_id="9931-1" title="South Africa" title-ascii="South Africa">
+      <history>
+      </history>
+      <introductory>
+      </introductory>
+   </destination>
+   <destination atlas_id="355064" asset_id="1542-52" title="Cape Town" title-ascii="Cape Town">
+      <history>
+      </history>
+      <introductory>
+      </introductory>
+   </destination>
+   <destination atlas_id="355613" asset_id="" title="Table Mountain National Park" title-ascii="Table Mountain National Park">
+      <introductory>
+      </introductory>
+   </destination>
+</destinations>
