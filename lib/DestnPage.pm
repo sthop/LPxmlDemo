@@ -7,8 +7,6 @@ package DestnPage;
 
 use English;
 use warnings;
-use Encode qw/encode/;
-use IO::File;
 use Moose;
 use MooseX::Privacy;
 use Path::Class;
