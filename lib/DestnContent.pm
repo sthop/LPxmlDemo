@@ -8,6 +8,7 @@ package DestnContent;
 use English;
 use warnings;
 use Moose;
+use MooseX::Privacy;
 use Destinations;
 
 with 'Role::Notifiable';
@@ -70,7 +71,7 @@ sub build {
 # $content - The content hash initialised at the start of "build"
 # $IntroNode - The <introductory> element node
 ################################################################################
-sub _setIntroduction {
+private_method _setIntroduction => sub {
    my $self = shift;
    my ($content, $IntroNode) = @_;
    
@@ -100,7 +101,7 @@ sub _setIntroduction {
    } else {
       $self->echo('No introduction found','debug');
    }
-}
+};
 
 ################################################################################
 # Private Method
@@ -108,7 +109,7 @@ sub _setIntroduction {
 # $content - The content hash initialised at the start of "build"
 # $IntroNode - The top level <history> element node
 ################################################################################
-sub _setHistory {
+private_method _setHistory => sub {
    my $self = shift;
    my ($content, $histNode) = @_;
    
@@ -145,27 +146,27 @@ sub _setHistory {
    } else {
       $self->echo('No history found','debug');
    }
-}
+};
 
 ################################################################################
 # Private Method
 # Extract the title attributes from the destination element and add it to the
 # page content data (title may contain utf8 characters)
 ################################################################################
-sub _setTitles {
+private_method _setTitles => sub {
    my $self = shift;
    my ($pageData,$doc) = @_;
    my $docElem = $doc->getDocumentElement;
 
    $pageData->{title} = $docElem->getAttribute('title');
    $pageData->{title_ascii} = $docElem->getAttribute('title-ascii');
-}
+};
 
 ################################################################################
 # Private Method
 # Generic module for extracting and returning the text of an element.
 ################################################################################
-sub _getElementText {
+private_method _getElementText => sub {
    my $self = shift;
    my ($elem) = @_;
 
@@ -179,7 +180,7 @@ sub _getElementText {
       return(undef);
    }
    return(_trim($textNode->getData));
-}
+};
 
 ################################################################################
 # Private Method
