@@ -43,3 +43,32 @@ no Moose::Role;
 
 1;
 __END__
+
+=head1 NAME
+
+Role::PathClassable - Adds subtypes for Path and File attributes, to the class using
+the role.
+
+=head1 SYNOPSIS
+
+  use Moose;
+  
+  with 'Role::PathClassable';
+  
+  has 'somePath' => (isa => 'pathType',
+     is => 'rw',
+     coerce => 1
+  );
+  
+  has 'someFile' => ( isa => 'fileType',
+     is => 'rw',
+     coerce => 1
+  );
+
+=head1 DESCRIPTION
+
+Allows attributes of class type 'Path::Class::Dir', or 'Path::Class::File' to be
+initialised with a String. Strings will be automatically converted to an object of
+the specified class.
+
+=cut

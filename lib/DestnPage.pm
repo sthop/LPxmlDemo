@@ -129,6 +129,8 @@ DestnPage - Class for Generating a destination html page (basically a view).
   
   Args->initialize();
   my $page = DestnPage->new(templateConfig => 'template.cfg');
+  ...
+  $page->generate($pageDataHash);
 
 =head1 DESCRIPTION
 
@@ -158,5 +160,36 @@ Configuration File (YAML) containing the template configurations
   Default:     ''
 
 Encoding type for the template output (eg utf-8)
+
+=head1 METHODS
+
+=head2 generate
+
+Generates a Destination HTML Page in the directory specified by path, with details
+provided in a Page Data Hash structure.
+
+   $page->generate($pageDataHash);
+
+As a minimum, $pageDataHash must contain the following keys:
+
+=over 4
+
+= item *
+
+node_id: The node id is used for the html file names on
+
+=item *
+
+title: The destination name
+
+=item *
+
+navigation: An array (can be empty) for the navigation links
+
+=item *
+
+content: A hash (can be empty) containing The main content or details of the destination
+
+=back
 
 =cut
