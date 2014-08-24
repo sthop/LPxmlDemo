@@ -11,6 +11,8 @@ use Moose;
 use MooseX::Privacy;
 use Destinations;
 
+our $VERSION = '0.10';
+
 with 'Role::Notifiable';
 
 ################################################################################

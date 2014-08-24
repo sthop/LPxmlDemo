@@ -15,6 +15,8 @@ use Try::Tiny;
 use YAML;
 use Args;
 
+our $VERSION = '0.10';
+
 with 'Role::PathClassable';
 with 'Role::Notifiable';
 

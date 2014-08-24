@@ -11,7 +11,7 @@ use Moose::Role;
 use Moose::Util::TypeConstraints;
 use Path::Class;
 
-our $VERSION = sprintf("%d.%02d", q'$Revision: 1.1 $' =~ /(\d+)\.(\d+)/);
+our $VERSION = '0.10';
 
 ################################################################################
 # Object Attribute Sub Types:
