@@ -7,6 +7,7 @@ package DestnPage;
 
 use English;
 use warnings;
+use FindBin;
 use Moose;
 use MooseX::Privacy;
 use Path::Class;
@@ -90,6 +91,12 @@ sub _setTmplCfgs {
    } catch {
       $self->exception($_,'error');
    };
+   # Convert Include paths (which should be relative to bin) to absolute.
+   if (exists($cfg->{INCLUDE_PATH})) {
+      my @incPath = map {Path::Class::Dir->new($FindBin::Bin,$_)->resolve->stringify}
+         @{$cfg->{INCLUDE_PATH}};
+      $cfg->{INCLUDE_PATH} = \@incPath;
+   }
    return($cfg);
 }
 
