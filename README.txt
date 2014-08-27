@@ -52,6 +52,7 @@ Directory Structure
 bin/ - Contains the main perl script.
 lib/ - Contains all the modules for the application
 cfg/ - Contains configuration files (one for Template and one for Log4perl)
+doc/ - html format of the module documentation.
 log/ - Contains log files generated when running the script
 t/ - Contains the main test harness for the unit tests.
 t/lib - Contains all the unit test library classes
@@ -80,3 +81,21 @@ To run the application
 BuildDestinations.pl will also print a help message:
 
 > carton exec bin/buildDestinations.pl -h
+
+
+
+Logging
+
+The script will generate a log file. The log file is controlled through the
+configuration file:
+cfg/destnBuilder.log.cfg
+
+The logging level can be set in the config file (e.g. DEBUG, INFO, WARN, ERROR,
+etc).
+
+
+
+Documentation
+
+The documentation for the modules have been provided in html format, converted
+from Perl's POD format.
