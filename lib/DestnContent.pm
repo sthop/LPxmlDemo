@@ -18,13 +18,22 @@ with 'Role::Notifiable';
 ################################################################################
 # Attributes:
 ################################################################################
-
 has 'destinations' => (isa => 'Destinations',
    is => 'rw',
    required => 1,
+   lazy => 1,
    builder => '_set_destinations',
    documentation => q/Destinations object/
 );
+
+################################################################################
+# Constructor:
+################################################################################
+sub BUILD {
+   my $self = shift;
+
+   $self->echo('New DestnContent object instantiated');
+}
 
 ################################################################################
 # Public Method
@@ -204,6 +213,7 @@ sub _trim {
 sub _set_destinations {
    my $self = shift;
    
+   $self->echo('Constructing a default Destinations object');
    return(Destinations->new());
 }
 

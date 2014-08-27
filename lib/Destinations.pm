@@ -26,6 +26,7 @@ has 'file' => (isa => 'fileType',
    is => 'rw',
    required => 1,
    coerce => 1,
+   lazy => 1,
    builder => '_setFileFromArgs',
    documentation => q/Full name of the destinations xml file/
 );
@@ -58,6 +59,7 @@ has '_indexes' => (isa => 'HashRef',
 sub BUILD {
    my $self = shift;
 
+   $self->echo('New Destinations Object instantiated');
    $self->_fh->open($self->file,'<') ||
       $self->exception('Failed to open the Destinations file');
    $self->_buildIndex();
@@ -218,6 +220,8 @@ private_method _buildIndex => sub {
 sub _setFileFromArgs {
    my $self = shift;
 
+   $self->echo('Destinations XML not passed through as an argument during
+      instantiation. Attempting to automatically set it from the Command Line arguments');
    return(Args->instance()->destinations)
       if (Args->initialised);
 }

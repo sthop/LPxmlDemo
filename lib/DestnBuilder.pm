@@ -15,6 +15,8 @@ extends 'XML::SAX::Base';
 
 our $VERSION = '0.10';
 
+with 'Role::Notifiable';
+
 ################################################################################
 # Attributes:
 ################################################################################
@@ -22,6 +24,7 @@ our $VERSION = '0.10';
 has 'destnContent' => (isa => 'DestnContent',
    is => 'rw',
    required => 1,
+   lazy => 1,
    builder => '_set_destnContent',
    documentation => q/Destination Content for building up the data content for the destination page/
 );
@@ -51,6 +54,7 @@ sub BUILD {
    my $self = shift;
 
    $self->destnPage->encoding($self->destnContent->destinations->encoding);
+   $self->echo('New DestnBuilder XML SAX Handler object instantiated');
 }
 
 ################################################################################
@@ -174,6 +178,7 @@ sub _ancestorNav {
 sub _set_destnContent {
    my $self = shift;
    
+   $self->echo('Constructing a default DestnContent object');
    return(DestnContent->new());
 }
 

@@ -28,6 +28,7 @@ has 'path' => (isa => 'pathType',
    is => 'rw',
    required => 1,
    coerce => 1,
+   lazy => 1,
    builder => '_setPathFromArgs',
    documentation => q/Full path of where the generated html Page is to be created/
 );
@@ -54,6 +55,15 @@ has '_tmplCfgs' => (isa => 'HashRef',
 );
 
 ################################################################################
+# Constructor:
+################################################################################
+sub BUILD {
+   my $self = shift;
+
+   $self->echo('New DestnPage object instantiated');
+}
+
+################################################################################
 # Public Methods generate
 # Takes page data ($pageData hash), and build the html content using Template to
 # generate a destination page.
@@ -73,6 +83,7 @@ sub generate {
    push(@procParams, {binmode => ':encoding('.$self->encoding.')'})
       if ($self->encoding);
 
+   $self->echo('Generating file ['.$pageData->{node_id}.'.html]');
    $destTmpl->process(@procParams) || $self->exception($destTmpl->error);
    delete($pageData->{content}); #Clean up content as it's not longer needed
 }
@@ -108,6 +119,8 @@ sub _setTmplCfgs {
 sub _setPathFromArgs {
    my $self = shift;
 
+   $self->echo('Path for generated html pages not passed through as an argument during
+      instantiation. Attempting to automatically set it from the Command Line arguments');
    return(Args->instance()->path)
       if (Args->initialised);
 }

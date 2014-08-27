@@ -14,6 +14,8 @@ use MooseX::Privacy;
 
 our $VERSION = '0.10';
 
+with 'Role::Notifiable';
+
 ################################################################################
 # Attributes:
 ################################################################################
@@ -59,6 +61,15 @@ around BUILDARGS => sub {
    
    return $args;
 };
+
+sub BUILD {
+   my $self = shift;
+   my $args = $0." called with:\n\ttaxonomy - ".$self->taxonomy."\n\tdestinations - ";
+   $args .= $self->destinations."\n\tpath - ".$self->path;
+   $args .= "\n\tverbose mode" if ($self->verbose);
+
+   $self->echo($args);
+}
 
 ################################################################################
 # Public Method getDestination
