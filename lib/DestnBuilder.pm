@@ -240,7 +240,7 @@ destination page as it goes along.
   Data Type:   DestnContent object
   Required:    Yes
 
-Destination Content for building up the data content for the destination page
+Destination Content used to build up the data for the destination page
 
 =head2 destnPage
 

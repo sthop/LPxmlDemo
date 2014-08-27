@@ -196,9 +196,9 @@ As a minimum, $pageDataHash must contain the following keys:
 
 =over 4
 
-= item *
+=item *
 
-node_id: The node id is used for the html file names on
+node_id: The node id is used as the basis for the html file names generated.
 
 =item *
 
@@ -210,7 +210,7 @@ navigation: An array (can be empty) for the navigation links
 
 =item *
 
-content: A hash (can be empty) containing The main content or details of the destination
+content: A hash (can be empty) containing the main content or details of the destination
 
 =back
 

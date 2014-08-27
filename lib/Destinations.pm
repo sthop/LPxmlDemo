@@ -269,7 +269,7 @@ object.
 
 Full name of the destinations xml file. Will accept the name as a String.
 
-= head2 encoding
+=head2 encoding
 
   Data Type:  String
   Required:   Yes (see description)
@@ -284,7 +284,7 @@ Returns an XML DOM object of the destination record, for an atlas id.
 
   $dest_rec = $destn->getDestination(atlas_id)
 
-= head2 destinationTitles
+=head2 destinationTitles
 
 Returns the title information for an atlas id, stored in the index.
 
