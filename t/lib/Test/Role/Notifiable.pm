@@ -271,6 +271,9 @@ sub _stripUnwantedFileContent {
    
    #Ignore multiple lines related to a stack trace for warning and die log messages
    return if ($line =~ /^(?:.+?\s\w+]\s)?\t/);
+   #Ignore line that has application name in it. Generated during instantiation of
+   #Args.
+   return if (/${0}/);
    #Log messages will start with date & time stamp. Don't need to validate this, so strip it off
    $line =~ s/^.+?\s(\w+])/$1/;
    #First line containing a stack trace
