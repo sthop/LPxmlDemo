@@ -1254,13 +1254,13 @@ DISTRIBUTIONS
       Scalar::Util 1.18
       Test::More 0.42
       perl 5.00503
-  Path-Class-0.33
-    pathname: K/KW/KWILLIAMS/Path-Class-0.33.tar.gz
+  Path-Class-0.34
+    pathname: K/KW/KWILLIAMS/Path-Class-0.34.tar.gz
     provides:
-      Path::Class 0.33
-      Path::Class::Dir 0.33
-      Path::Class::Entity 0.33
-      Path::Class::File 0.33
+      Path::Class 0.34
+      Path::Class::Dir 0.34
+      Path::Class::Entity 0.34
+      Path::Class::File 0.34
     requirements:
       Carp 0
       Cwd 0
@@ -1957,11 +1957,11 @@ DISTRIBUTIONS
     requirements:
       ExtUtils::MakeMaker 6.31
       Test::More 0.88
-  YAML-1.09
-    pathname: I/IN/INGY/YAML-1.09.tar.gz
+  YAML-1.10
+    pathname: I/IN/INGY/YAML-1.10.tar.gz
     provides:
-      YAML 1.09
-      YAML::Any 1.09
+      YAML 1.10
+      YAML::Any 1.10
       YAML::Dumper undef
       YAML::Dumper::Base undef
       YAML::Error undef
